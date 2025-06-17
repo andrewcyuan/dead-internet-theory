@@ -1,13 +1,13 @@
 import { createClient } from "@/lib/supabase/client";
-import { createPostSelectionPrompt, tools } from "./prompts";
+import { createPostSelectionPrompt, createReadingPrompt, readingTools, tools } from "./prompts";
 
 export type Post = {
     id?: string;
-    score: number;
+    score?: number;
     title?: string;
     body: string;
     author: string;
-    replying_to: string;
+    replying_to?: string;
     type: string;
     created_at?: string;
 }
@@ -25,11 +25,15 @@ export type SimConditions = {
 
 const selectRandomAgent = async () => {
     const supabase = createClient();
-    const { data, error } = await supabase.from('agent_profiles').select('*').order('created_at', { ascending: false }).limit(1);
+    const { data, error } = await supabase.from('agent_profiles').select('*').order('created_at', { ascending: false });
     if (error) {
         console.error(error);
     }
-    return data?.[0];
+    // truly select a random agent
+    const randomIndex = Math.floor(Math.random() * (data?.length ?? 0));
+    const agent = data?.[randomIndex];
+    console.log(agent);
+    return agent;
 }
 
 const getUsername = async (id: string) => {
@@ -51,7 +55,7 @@ const countPosts = async () => {
     return data?.[0]?.count ?? 0;
 }
 
-const createPost = async (post: Post, agent: Agent) => {
+const replyToPost = async (post: Post, agent: Agent) => {
 
     // Call OpenAI API
     const response = await fetch('/api/openai', {
@@ -61,23 +65,26 @@ const createPost = async (post: Post, agent: Agent) => {
         },
         body: JSON.stringify({
             messages: [
-                { role: 'system', content: `You are an agent with this persona: ${agent.persona}, and this memory: ${agent.memory}. You are given a post and you need to respond to it. The post is: ${post.body}. Respond to it based on your persona and memory.` },
+                { role: 'system', content: createReadingPrompt({ persona: agent.persona, memory: agent.memory, post: post, comments: [] }) },
             ],
             model: 'gpt-3.5-turbo',
-            temperature: 0.6
+            temperature: 0.6,
+            tool_choice: 'required',
+            tools: readingTools,
         }),
     });
 
     const result = await response.json();
     console.log(result);
 
-    post.body = result.choices[0].message.content;
-
-
-    const supabase = createClient();
-    const { data, error } = await supabase.from('posts').insert(post);
-    if (error) {
-        console.error(error);
+    const action = result.choices[0].message.tool_calls[0].function;
+    if (action.name === 'select_post') {
+        const postContent = JSON.parse(action.arguments); //target_id, title, body
+        const supabase = createClient();
+        const { data, error } = await supabase.from('posts').insert(post);
+        if (error) {
+            console.error(error);
+        }
     }
 }
 
@@ -171,6 +178,34 @@ const generatePrompt = async (agent: Agent) => {
     return [prompt, postsRandomSubset];
 }
 
+const upvotePost = async (postId: string) => {
+    const supabase = createClient();
+    const { data: post, error: postError } = await supabase.from('posts').select('*').eq('id', postId).single();
+    if (postError) {
+        console.error(postError);
+    }
+    const { data, error } = await supabase.from('posts').update({
+        score: post.score + 1,
+    }).eq('id', postId);
+    if (error) {
+        console.error(error);
+    }
+}
+
+const downvotePost = async (postId: string) => {
+    const supabase = createClient();
+    const { data: post, error: postError } = await supabase.from('posts').select('*').eq('id', postId).single();
+    if (postError) {
+        console.error(postError);
+    }
+    const { data, error } = await supabase.from('posts').update({
+        score: post.score - 1,
+    }).eq('id', postId);
+    if (error) {
+        console.error(error);
+    }
+}
+
 const interact = async (agent: Agent) => {
     // Get all posts for context (check that type column is 'post')
     const r = await generatePrompt(agent);
@@ -190,6 +225,7 @@ const interact = async (agent: Agent) => {
             model: 'gpt-3.5-turbo',
             temperature: 0.6,
             tools: tools,
+            tool_choice: 'required',
         }),
     });
 
@@ -203,7 +239,7 @@ const interact = async (agent: Agent) => {
         console.log("index", postContent.target_id);
         console.log("")
 
-        const post = await createPost({
+        const post = await replyToPost({
             body: posts?.[postContent.target_id - 1].body,
             author: agent.id,
             replying_to: posts?.[postContent.target_id - 1].id,
@@ -212,10 +248,36 @@ const interact = async (agent: Agent) => {
         }, agent);
     }
 
+    if (action.name === 'create_post') {
+        const postContent = JSON.parse(action.arguments); //title, body
+        await createNewPost({
+            title: postContent.title,
+            body: postContent.body,
+            author: agent.id,
+            type: 'post',
+        });
+    }
+
+    if (action.name === 'upvote') {
+        const postId = JSON.parse(action.arguments);
+        const post = await upvotePost(postId);
+    }
+
+    if (action.name === 'downvote') {
+        const postId = JSON.parse(action.arguments);
+        const post = await downvotePost(postId);
+    }
+
     return null;
 }
 
 export const runSim = async (simConditions: SimConditions) => {
+    // delete all rows from posts table if type is comment
+    const supabase = createClient();
+    const { data, error } = await supabase.from('posts').delete().eq('type', 'comment');
+    if (error) {
+        console.error(error);
+    }
 
     for (let i = 0; i < 10; i++) {
         // randomly select an agent
