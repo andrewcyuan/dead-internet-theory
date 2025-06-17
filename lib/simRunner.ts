@@ -321,6 +321,62 @@ const interact = async (agent: Agent) => {
     return null;
 }
 
+const updateMemory = async (agent: Agent) => {
+    const supabase = createClient();
+
+    // Get all posts by the current agent
+    const { data: agentPosts, error: agentPostsError } = await supabase
+        .from('posts')
+        .select('id, title, body')
+        .eq('author', agent.id);
+
+    if (agentPostsError) {
+        console.error('Error fetching agent posts:', agentPostsError);
+        return;
+    }
+
+    if (!agentPosts || agentPosts.length === 0) {
+        return; // No posts by this agent, so nothing to update memory with.
+    }
+
+    let memoryLog = [];
+
+    // For each post, get replies and format the memory string
+    for (const post of agentPosts) {
+        const { data: replies, error: repliesError } = await supabase
+            .from('posts')
+            .select('body')
+            .eq('replying_to', post.id);
+
+        let responseText = 'There were no responses.';
+        if (repliesError) {
+            console.error(`Error fetching replies for post ${post.id}:`, repliesError);
+            responseText = 'Could not fetch responses.';
+        } else if (replies && replies.length > 0) {
+            const replyBodies = replies.map(r => `- ${r.body}`).join('\n');
+            responseText = `Here were the responses:\n${replyBodies}`;
+        }
+        
+        const postIdentifier = post.title
+            ? `{title: "${post.title}", body: "${post.body}"}`
+            : `{body: "${post.body}"}`;
+        
+        memoryLog.push(`you posted this: ${postIdentifier}. ${responseText}`);
+    }
+
+    const newMemory = memoryLog.join('\n\n');
+
+    // Update the agent's memory
+    const { error: updateError } = await supabase
+        .from('agent_profiles')
+        .update({ memory: newMemory })
+        .eq('id', agent.id);
+
+    if (updateError) {
+        console.error('Error updating agent memory:', updateError);
+    }
+};
+
 export const runSim = async (simConditions: SimConditions) => {
     // delete all rows from posts table
     const supabase = createClient();
@@ -336,5 +392,8 @@ export const runSim = async (simConditions: SimConditions) => {
 
         // interact with the agent
         const result = await interact(agent);
+
+        await updateMemory(agent);
+
     }
 }
