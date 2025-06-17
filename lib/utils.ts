@@ -1,4 +1,4 @@
-import { clsx, type ClassValue } from "clsx";
+import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
@@ -9,3 +9,20 @@ export function cn(...inputs: ClassValue[]) {
 export const hasEnvVars =
   process.env.NEXT_PUBLIC_SUPABASE_URL &&
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+const animals = [
+  "Panda", "Koala", "Zebra", "Giraffe", "Penguin", "Kangaroo", "Dolphin", "Lion",
+  "Tiger", "Elephant", "Rhino", "Hippo", "Cheetah", "Gorilla", "Sloth", "Otter",
+  "Fox", "Wolf", "Bear", "Raccoon", "Hedgehog", "Platypus", "Llama", "Alpaca"
+];
+
+const adjectives = [
+  "Happy", "Clever", "Swift", "Brave", "Wise", "Gentle", "Mighty", "Noble",
+  "Calm", "Bright", "Agile", "Bold", "Merry", "Keen", "Proud", "Kind"
+];
+
+export function generateAnimalUsername(): string {
+  const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const animal = animals[Math.floor(Math.random() * animals.length)];
+  return `${adjective}${animal}`;
+}
