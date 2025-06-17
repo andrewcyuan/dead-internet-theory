@@ -14,6 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import Link from 'next/link';
 
 interface Role {
   role_id: number;
@@ -28,7 +29,7 @@ export function UserProfileForm() {
   const [roles, setRoles] = useState<Role[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentRole, setCurrentRole] = useState<Role | null>(null);
-  const [randomDistribution, setRandomDistribution] = useState<{[key: string]: number}>({});
+  const [randomDistribution, setRandomDistribution] = useState<{ [key: string]: number }>({});
   const [totalRandomAgents, setTotalRandomAgents] = useState<number>(1);
 
   useEffect(() => {
@@ -40,14 +41,14 @@ export function UserProfileForm() {
       .from('roles')
       .select('*')
       .order('role_id');
-    
+
     if (data) {
       setRoles(data);
       // Initialize random distribution with 0 for each role
       const initialDistribution = data.reduce((acc, role) => {
         acc[role.role_id] = 0;
         return acc;
-      }, {} as {[key: string]: number});
+      }, {} as { [key: string]: number });
       setRandomDistribution(initialDistribution);
     }
   };
@@ -57,15 +58,15 @@ export function UserProfileForm() {
     setCurrentRole(role || null);
   }, [selectedRole, roles]);
 
-  const generateRandomDistribution = (total: number, availableRoles: Role[]): {[key: string]: number} => {
-    const distribution: {[key: string]: number} = {};
+  const generateRandomDistribution = (total: number, availableRoles: Role[]): { [key: string]: number } => {
+    const distribution: { [key: string]: number } = {};
     let remaining = total;
-    
+
     // Initialize all roles with 0
     availableRoles.forEach(role => {
       distribution[role.role_id] = 0;
     });
-    
+
     // Randomly distribute agents
     while (remaining > 0) {
       const randomRoleIndex = Math.floor(Math.random() * availableRoles.length);
@@ -73,7 +74,7 @@ export function UserProfileForm() {
       distribution[roleId]++;
       remaining--;
     }
-    
+
     return distribution;
   };
 
@@ -115,15 +116,15 @@ export function UserProfileForm() {
         const resetDistribution = Object.keys(randomDistribution).reduce((acc, key) => {
           acc[key] = 0;
           return acc;
-        }, {} as {[key: string]: number});
+        }, {} as { [key: string]: number });
         setRandomDistribution(resetDistribution);
       } else {
         // Random distribution mode
         if (totalRandomAgents < 1) throw new Error('Please specify at least one agent to generate');
-        
+
         const distribution = generateRandomDistribution(totalRandomAgents, roles);
         const usersToCreate = [];
-        
+
         for (const roleId in distribution) {
           const count = distribution[roleId];
           if (count > 0) {
@@ -181,35 +182,35 @@ export function UserProfileForm() {
       </div>
       {mode === 'multi' && (
         <div className="grid gap-4">
-            <div className="text-sm font-medium mb-2 col-span-full">
+          <div className="text-sm font-medium mb-2 col-span-full">
             Specify number of agents per role:
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 col-span-full">
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 col-span-full">
             {roles.map((role) => (
-                <div key={role.role_id} className="flex flex-col gap-2 p-3 rounded-md bg-muted h-full">
+              <div key={role.role_id} className="flex flex-col gap-2 p-3 rounded-md bg-muted h-full">
                 <div className="flex flex-col gap-1 flex-1">
-                    <Badge variant="secondary">{role.role_name}</Badge>
-                    <p className="text-xs text-muted-foreground">{role.role_description}</p>
+                  <Badge variant="secondary">{role.role_name}</Badge>
+                  <p className="text-xs text-muted-foreground">{role.role_description}</p>
                 </div>
                 <Input
-                    type="number"
-                    min="0"
-                    max="50"
-                    value={randomDistribution[role.role_id] || 0}
-                    onChange={(e) => setRandomDistribution(prev => ({
+                  type="number"
+                  min="0"
+                  max="50"
+                  value={randomDistribution[role.role_id] || 0}
+                  onChange={(e) => setRandomDistribution(prev => ({
                     ...prev,
                     [role.role_id]: parseInt(e.target.value) || 0
-                    }))}
-                    className="w-full mt-auto"
+                  }))}
+                  className="w-full mt-auto"
                 />
-                </div>
+              </div>
             ))}
-            </div>
-            <div className="text-sm text-muted-foreground text-right col-span-full">
+          </div>
+          <div className="text-sm text-muted-foreground text-right col-span-full">
             Total agents to generate: {Object.values(randomDistribution).reduce((a, b) => a + b, 0)}
-            </div>
+          </div>
         </div>
-        )}
+      )}
 
 
       {mode === 'random' && (
@@ -234,25 +235,33 @@ export function UserProfileForm() {
         </div>
       )}
 
-      <Button 
-        type="submit" 
-        className="w-full" 
-        disabled={
-          isLoading || 
-          (mode === 'multi' && Object.values(randomDistribution).reduce((a, b) => a + b, 0) === 0) ||
-          (mode === 'random' && totalRandomAgents < 1)
-        }
-      >
-        {isLoading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Creating Agents...
-          </>
-        ) : mode === 'multi' ? (
-          'Generate Multi-Role Distribution'
-        ) : (
-          'Generate Random Distribution'
-        )}
-      </Button>
+      <div className="flex flex-col gap-2 items-end">
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={
+            isLoading ||
+            (mode === 'multi' && Object.values(randomDistribution).reduce((a, b) => a + b, 0) === 0) ||
+            (mode === 'random' && totalRandomAgents < 1)
+          }
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Creating Agents...
+            </>
+          ) : mode === 'multi' ? (
+            'Generate Multi-Role Distribution'
+          ) : (
+            'Generate Random Distribution'
+          )}
+        </Button>
+        <Link href="/result">
+          <Button>
+            View Results
+          </Button>
+        </Link>
+      </div>
     </form>
-  );} 
+  );
+} 

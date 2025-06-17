@@ -322,7 +322,7 @@ export const runSim = async (simConditions: SimConditions) => {
     const supabase = createClient();
     await supabase.from('posts').delete().neq('type', 'bruh');
 
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < simConditions.maxPosts; i++) {
         // randomly select an agent
         const agent = await selectRandomAgent();
         console.log(agent);

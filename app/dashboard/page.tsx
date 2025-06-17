@@ -4,7 +4,6 @@ import { Suspense, useEffect, useState } from 'react';
 import { UserProfileForm } from '@/components/UserProfileForm';
 import { supabase } from '@/lib/supabase';
 import type { UserProfile } from '@/lib/supabase';
-import { StartButton } from '@/components/StartButton';
 
 function UserProfilesList() {
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
@@ -58,7 +57,6 @@ function UserProfilesList() {
           ))}
         </div>
       </div>
-      <StartButton />
     </div>
   );
 }

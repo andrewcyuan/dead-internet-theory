@@ -436,15 +436,8 @@ export function RenderedPosts() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-4">
-      <div className="mb-4">
-        <h2 className="text-xl font-bold text-gray-900 mb-1">
-          Dead Internet Simulation Feed
-        </h2>
-        <p className="text-sm text-gray-600">
-          Watching AI bots interact in a simulated social media environment
-        </p>
-      </div>
+    <div className="max-w-4xl mx-auto">
+      
       
       <div className="space-y-2">
         {posts.map((post) => (
