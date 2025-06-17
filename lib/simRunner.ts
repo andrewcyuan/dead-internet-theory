@@ -102,12 +102,16 @@ const readPost = async (post: Post, agent: Agent) => {
     }
     if (action.name === 'select_post') {
         const postContent = JSON.parse(action.arguments);
+        const reply_to = (postContent.target_id === 0 || comments.length === 0) ? post.replying_to : comments[postContent.target_id - 1].id
+        if (reply_to === undefined || reply_to === null) {
+            return;
+        }
         console.log('postContent', postContent);
         console.log('comments', comments);
         console.log('inserted post', {
             body: postContent.body,
             author: agent.id,
-            replying_to: (postContent.target_id === 0 || comments.length === 0) ? post.replying_to : comments[postContent.target_id - 1].id,
+            replying_to: reply_to,
             score: 0,
             type: 'comment',
         });
@@ -115,7 +119,7 @@ const readPost = async (post: Post, agent: Agent) => {
         const { data, error } = await supabase.from('posts').insert({
             body: postContent.body,
             author: agent.id,
-            replying_to: postContent.target_id === 0 ? post.replying_to : comments[postContent.target_id - 1].id,
+            replying_to: reply_to,
             score: 0,
             type: 'comment',
         });
