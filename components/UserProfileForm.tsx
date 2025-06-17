@@ -183,7 +183,7 @@ export function UserProfileForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 max-w-md mx-auto bg-card p-6 rounded-lg border">
+    <form onSubmit={handleSubmit} className="space-y-6 w-full max-w-5xl mx-auto bg-card p-6 rounded-lg border">
       <div className="space-y-2">
         <label className="block text-sm font-medium">
           Generation Mode
@@ -198,36 +198,38 @@ export function UserProfileForm() {
           </SelectContent>
         </Select>
       </div>
-
-    {mode === 'multi' && (
-        <div className="space-y-4">
-          <div className="text-sm font-medium mb-2">
+      {mode === 'multi' && (
+        <div className="grid gap-4">
+            <div className="text-sm font-medium mb-2 col-span-full">
             Specify number of agents per role:
-          </div>
-          {roles.map((role) => (
-            <div key={role.role_id} className="flex items-center gap-4 p-3 rounded-md bg-muted">
-              <div className="flex-1">
-                <Badge variant="secondary" className="mb-1">{role.role_name}</Badge>
-                <p className="text-xs text-muted-foreground">{role.role_description}</p>
-              </div>
-              <Input
-                type="number"
-                min="0"
-                max="50"
-                value={randomDistribution[role.role_id] || 0}
-                onChange={(e) => setRandomDistribution(prev => ({
-                  ...prev,
-                  [role.role_id]: parseInt(e.target.value) || 0
-                }))}
-                className="w-20"
-              />
             </div>
-          ))}
-          <div className="text-sm text-muted-foreground text-right">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 col-span-full">
+            {roles.map((role) => (
+                <div key={role.role_id} className="flex flex-col gap-2 p-3 rounded-md bg-muted h-full">
+                <div className="flex flex-col gap-1 flex-1">
+                    <Badge variant="secondary">{role.role_name}</Badge>
+                    <p className="text-xs text-muted-foreground">{role.role_description}</p>
+                </div>
+                <Input
+                    type="number"
+                    min="0"
+                    max="50"
+                    value={randomDistribution[role.role_id] || 0}
+                    onChange={(e) => setRandomDistribution(prev => ({
+                    ...prev,
+                    [role.role_id]: parseInt(e.target.value) || 0
+                    }))}
+                    className="w-full mt-auto"
+                />
+                </div>
+            ))}
+            </div>
+            <div className="text-sm text-muted-foreground text-right col-span-full">
             Total agents to generate: {Object.values(randomDistribution).reduce((a, b) => a + b, 0)}
-          </div>
+            </div>
         </div>
-      )}
+        )}
+
 
       {mode === 'random' && (
         <div className="space-y-4">
@@ -272,5 +274,4 @@ export function UserProfileForm() {
         )}
       </Button>
     </form>
-  );
-} 
+  );} 

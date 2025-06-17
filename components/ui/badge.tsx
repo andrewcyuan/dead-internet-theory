@@ -6,7 +6,7 @@ interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 function Badge({ className, variant = "default", ...props }: BadgeProps) {
-  const baseClasses = "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors"
+  const baseClasses = "inline-flex items-center rounded-full border py-0.5 text-xs font-semibold transition-colors"
   
   const variantClasses = {
     default: "border-transparent bg-gray-900 text-white hover:bg-gray-800",
