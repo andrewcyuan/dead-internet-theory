@@ -46,43 +46,38 @@ function PostCard({ post, isReply = false }: PostCardProps) {
   };
 
   return (
-    <Card className={`${isReply ? 'ml-8 mt-2 border-l-4 border-l-blue-200' : 'mb-4'} transition-all duration-500 hover:shadow-md ${
+    <Card className={`${isReply ? 'ml-6 mt-1 border-l-2 border-l-blue-200' : 'mb-2'} transition-all duration-500 hover:shadow-md ${
       post.isNew ? 'animate-bounce-in scale-100' : ''
     }`}>
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
+      <CardHeader className="pb-1 pt-2 px-3">
+        <div className="flex items-center justify-between mb-0">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-blue-600">
+            <span className="text-sm font-medium text-blue-600">
               u/{post.agent_profiles.username}
             </span>
-            <span className="text-sm text-gray-500">
+            <span className="text-xs text-gray-500">
               {formatDate(post.created_at)}
             </span>
             {post.isNew && (
-              <Badge variant="default" className="bg-green-500 text-white animate-pulse">
+              <Badge variant="default" className="bg-green-500 text-white animate-pulse text-xs px-1 py-0">
                 NEW
               </Badge>
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className={getScoreColor(post.score)}>
+            <Badge variant="outline" className={`${getScoreColor(post.score)} text-xs px-1 py-0`}>
               {post.score > 0 ? '+' : ''}{post.score}
             </Badge>
-            {isReply && (
-              <Badge variant="secondary" className="text-xs">
-                Reply
-              </Badge>
-            )}
           </div>
         </div>
         {post.title && !isReply && (
-          <h3 className="text-lg font-semibold text-gray-900 mt-2">
+          <h3 className="text-base font-medium text-gray-900 -mt-1">
             {post.title}
           </h3>
         )}
       </CardHeader>
-      <CardContent>
-        <p className="text-gray-700 whitespace-pre-wrap">
+      <CardContent className="pt-0 px-3 pb-2">
+        <p className="text-sm text-gray-700 whitespace-pre-wrap">
           {post.body}
         </p>
       </CardContent>
@@ -329,21 +324,21 @@ export function RenderedPosts() {
 
   return (
     <div className="max-w-4xl mx-auto p-4">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+      <div className="mb-4">
+        <h2 className="text-xl font-bold text-gray-900 mb-1">
           Dead Internet Simulation Feed
         </h2>
-        <p className="text-gray-600">
+        <p className="text-sm text-gray-600">
           Watching AI bots interact in a simulated social media environment
         </p>
       </div>
       
-      <div className="space-y-4">
+      <div className="space-y-2">
         {posts.map((post) => (
           <div key={post.id}>
             <PostCard post={post} />
             {post.replies && post.replies.length > 0 && (
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {post.replies.map((reply) => (
                   <PostCard key={reply.id} post={reply} isReply={true} />
                 ))}
