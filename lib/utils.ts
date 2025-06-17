@@ -24,5 +24,6 @@ const adjectives = [
 export function generateAnimalUsername(): string {
   const adjective = adjectives[Math.floor(Math.random() * adjectives.length)];
   const animal = animals[Math.floor(Math.random() * animals.length)];
-  return `${adjective}${animal}`;
+  const randomNumber = Math.floor(Math.random() * 10000); // Generate a random number between 0 and 9999
+  return `${adjective}${animal}${randomNumber}`;
 }
