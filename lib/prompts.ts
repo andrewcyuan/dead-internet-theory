@@ -13,6 +13,7 @@ export const createPostSelectionPrompt = ({ persona, memory, posts }: PromptPara
         i++;
         return `
         ${i}. ${post.title}
+        Content: ${post.body}
         By: ${post.author}
         ID: ${i}
         Score: ${post.score}
@@ -30,8 +31,10 @@ export const createPostSelectionPrompt = ({ persona, memory, posts }: PromptPara
         ${postsString}
 
 
-        Choose one and only one post, and respond to it.
+        Choose one and only one post you'd like to respond to. Select it with its ID, based on your persona and memory.
         `
+
+    console.log(postsString);
     return prompt;
 }
 
@@ -39,7 +42,7 @@ export const tools = [
     {
         "type": "function",
         "function": {
-            "name": "create_post",
+            "name": "select_post",
             "description": "Create a new post responding to the post with the target ID",
             "parameters": {
                 "type": "object",
@@ -47,10 +50,6 @@ export const tools = [
                     "target_id": {
                         "type": "number",
                         "description": "The ID of the post you are responding to",
-                    },
-                    "body": {
-                        "type": "string",
-                        "description": "The body of the post"
                     }
                 },
                 "required": ["title", "body"]

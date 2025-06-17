@@ -51,7 +51,29 @@ const countPosts = async () => {
     return data?.[0]?.count ?? 0;
 }
 
-const createPost = async (post: Post) => {
+const createPost = async (post: Post, agent: Agent) => {
+
+    // Call OpenAI API
+    const response = await fetch('/api/openai', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            messages: [
+                { role: 'system', content: `You are an agent with this persona: ${agent.persona}, and this memory: ${agent.memory}. You are given a post and you need to respond to it. The post is: ${post.body}. Respond to it based on your persona and memory.` },
+            ],
+            model: 'gpt-3.5-turbo',
+            temperature: 0.6
+        }),
+    });
+
+    const result = await response.json();
+    console.log(result);
+
+    post.body = result.choices[0].message.content;
+
+
     const supabase = createClient();
     const { data, error } = await supabase.from('posts').insert(post);
     if (error) {
@@ -136,7 +158,7 @@ const interact = async (agent: Agent) => {
                 { role: 'system', content: prompt },
             ],
             model: 'gpt-3.5-turbo',
-            temperature: 0.7,
+            temperature: 0.6,
             tools: tools,
         }),
     });
@@ -145,30 +167,35 @@ const interact = async (agent: Agent) => {
     console.log(result);
     const action = result.choices[0].message.tool_calls[0].function;
 
-    if (action.name === 'create_post') {
-        const postContent = JSON.parse(action.arguments); //given_post_id, title, body
+    if (action.name === 'select_post') {
+        const postContent = JSON.parse(action.arguments); //target_id, title, body
+
+        console.log("index", postContent.target_id);
+        console.log("")
+
         const post = await createPost({
-            body: postContent.body,
+            body: posts?.[postContent.target_id - 1].body,
             author: agent.id,
             replying_to: posts?.[postContent.target_id - 1].id,
             score: 0,
             type: 'comment',
-        });
+        }, agent);
     }
 
     return null;
 }
 
 export const runSim = async (simConditions: SimConditions) => {
-    // while (await countPosts() < simConditions.maxPosts) {
-    // randomly select an agent
-    const agent = await selectRandomAgent();
-    console.log(agent);
-    if (!agent) {
-        // continue;
-    }
 
-    // interact with the agent
-    const result = await interact(agent);
-    // }
+    for (let i = 0; i < 10; i++) {
+        // randomly select an agent
+        const agent = await selectRandomAgent();
+        console.log(agent);
+        if (!agent) {
+            // continue;
+        }
+
+        // interact with the agent
+        const result = await interact(agent);
+    }
 }
