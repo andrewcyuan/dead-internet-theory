@@ -4,16 +4,16 @@ import { createPostSelectionPrompt, tools } from "./prompts";
 export type Post = {
     id?: string;
     score: number;
-    title: string;
+    title?: string;
     body: string;
     author: string;
     replying_to: string;
-    context: string;
     type: string;
     created_at?: string;
 }
 
 export type Agent = {
+    id: string;
     username: string;
     persona: string;
     memory: string;
@@ -109,23 +109,21 @@ const generatePrompt = async (agent: Agent) => {
     const postsRandomSubset = posts.sort(() => Math.random() - 0.5).slice(0, 10); // read a random 10 posts (simulate feed)
     console.log(postsRandomSubset);
 
-    // Format posts into a string
-    const postsString = (await Promise.all(postsRandomSubset.map(async post => `${post.title}\nBy: ${await getUsername(post.author)}\nID: ${post.id}\n---`)))
-        .join('\n\n');
-
     // Create the prompt for the agent
     const prompt = createPostSelectionPrompt({
         persona: agent.persona,
         memory: agent.memory,
-        posts: postsString,
+        posts: postsRandomSubset,
     });
 
-    return prompt;
+    return [prompt, postsRandomSubset];
 }
 
 const interact = async (agent: Agent) => {
     // Get all posts for context (check that type column is 'post')
-    const prompt = await generatePrompt(agent);
+    const r = await generatePrompt(agent);
+    const prompt = r?.[0];
+    const posts = r?.[1];
 
     // Call OpenAI API
     const response = await fetch('/api/openai', {
@@ -147,15 +145,15 @@ const interact = async (agent: Agent) => {
     console.log(result);
     const action = result.choices[0].message.tool_calls[0].function;
 
-    if (action.name === 'read_post') {
-        const postId = action.arguments.post_id;
-        const post = await readPost(postId);
-    }
-
     if (action.name === 'create_post') {
-        const postContent = action.arguments.post_content;
-        const [title, ...bodyParts] = postContent.split('\n');
-        const body = bodyParts.join('\n');
+        const postContent = JSON.parse(action.arguments); //given_post_id, title, body
+        const post = await createPost({
+            body: postContent.body,
+            author: agent.id,
+            replying_to: posts?.[postContent.target_id - 1].id,
+            score: 0,
+            type: 'comment',
+        });
     }
 
     return null;
