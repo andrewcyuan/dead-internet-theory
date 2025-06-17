@@ -94,8 +94,10 @@ export function UserProfileForm() {
             const role = roles.find(r => r.role_id.toString() === roleId);
             if (role) {
               for (let i = 0; i < count; i++) {
+                const username = role.role_name.replace(' Agent', '').toLowerCase() + generateAnimalUsername();
+                console.log(username)
                 usersToCreate.push({
-                  username: generateAnimalUsername(),
+                  username: username,
                   persona: role.role_description
                 });
               }
@@ -131,7 +133,7 @@ export function UserProfileForm() {
             if (role) {
               for (let i = 0; i < count; i++) {
                 usersToCreate.push({
-                  username: generateAnimalUsername(),
+                  username: role.role_name.replace(' Agent', '').toLowerCase() + generateAnimalUsername(),
                   persona: role.role_description
                 });
               }
