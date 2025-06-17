@@ -83,25 +83,6 @@ export function UserProfileForm() {
 
     try {
       if (mode === 'multi') {
-        const role = roles.find(r => r.role_id.toString() === selectedRole);
-        if (!role) throw new Error('Please select a role');
-
-        const users = Array.from({ length: numberOfUsers }, () => ({
-          username: generateAnimalUsername(),
-          persona: role.role_description
-        }));
-
-        const { data, error } = await supabase
-          .from('agent_profiles')
-          .insert(users)
-          .select();
-
-        if (error) throw error;
-
-        toast.success(`Successfully created ${numberOfUsers} ${role.role_name}(s)!`);
-        setNumberOfUsers(1);
-        setSelectedRole('');
-      } else if (mode === 'random') {
         // Multi-role mode with specified distribution
         const totalAgents = Object.values(randomDistribution).reduce((a, b) => a + b, 0);
         if (totalAgents === 0) throw new Error('Please specify at least one agent to generate');
