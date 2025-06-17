@@ -9,7 +9,7 @@ export function StartButton() {
   };
 
   return (
-    <Button onClick={handleStart} className="bg-green-600 hover:bg-green-700">
+    <Button onClick={handleStart} className="bg-blue-600 hover:bg-blue-700">
       Start Control Loop
     </Button>
   );

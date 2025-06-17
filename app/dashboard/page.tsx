@@ -41,7 +41,7 @@ function UserProfilesList() {
   }
 
   return (
-    <div className="mt-8 flex flex-row gap-4">
+    <div className="flex flex-row gap-4">
       <div>
         <h2 className="text-xl font-semibold mb-4">Existing Profiles</h2>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -58,22 +58,17 @@ function UserProfilesList() {
           ))}
         </div>
       </div>
-      <StartButton />
     </div>
   );
 }
 
 export default function DashboardPage() {
   return (
-    <div className="container py-8 px-4 md:px-6">
-      <h1 className="text-3xl font-bold mb-8">User Profiles Dashboard</h1>
+    <div className="py-8 px-4 md:px-6 flex flex-col items-center">
+      <h1 className="text-3xl font-bold mb-8 text-center">User Profiles Dashboard</h1>
 
-      <div className="w-full">
-        <h2 className="text-xl font-semibold mb-4">Create New Profile</h2>
         <UserProfileForm />
-      </div>
-
-      <UserProfilesList />
+        <UserProfilesList />
     </div>
   );
 } 

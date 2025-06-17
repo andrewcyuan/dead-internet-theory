@@ -14,6 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { StartButton } from './StartButton';
 
 interface Role {
   role_id: number;
@@ -164,7 +165,7 @@ export function UserProfileForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 w-full max-w-5xl mx-auto bg-card p-6 rounded-lg border">
+    <form onSubmit={handleSubmit} className="space-y-6 w-full mx-auto">
       <div className="space-y-2">
         <label className="block text-sm font-medium">
           Generation Mode
@@ -254,5 +255,8 @@ export function UserProfileForm() {
           'Generate Random Distribution'
         )}
       </Button>
+
+      <StartButton />
+      <div className="h-4"></div>
     </form>
   );} 
