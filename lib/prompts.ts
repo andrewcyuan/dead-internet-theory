@@ -48,7 +48,7 @@ export const createPostSelectionPrompt = ({ persona, memory, posts }: PromptPara
         - create a new post based on your persona and memory
         - read a post you're interested in. Select it with its ID
 
-        if you don't see many posts, you must create a new post with some unique ideas.
+        comment and post an equal amount of times.
         `
 
     return prompt;
