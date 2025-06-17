@@ -26,7 +26,7 @@ export async function POST(req: Request) {
       max_tokens: body.max_tokens,
       stream: body.stream || false,
       tools: body.tools || [],
-      tool_choice: 'required',
+      tool_choice: body.tool_choice,
     });
 
     return NextResponse.json(completion);
