@@ -45,6 +45,23 @@ const getUsername = async (id: string) => {
     return data?.username;
 }
 
+const getComments = async (postId: string) => {
+    const supabase = createClient();
+    const { data, error } = await supabase.from('posts').select('*').eq('replying_to', postId).eq('type', 'comment');
+    const first_layer = data ? data : [];
+
+    const second_layer = await Promise.all(first_layer.map(async (post) => {
+        const { data, error } = await supabase.from('posts').select('*').eq('replying_to', post.id).eq('type', 'comment');
+        return data;
+    }));
+
+    const all_comments = [...first_layer, ...second_layer];
+    if (error) {
+        console.error(error);
+    }
+    return all_comments;
+}
+
 const countPosts = async () => {
     // count the number of rows in the posts table
     const supabase = createClient();
@@ -65,7 +82,7 @@ const replyToPost = async (post: Post, agent: Agent) => {
         },
         body: JSON.stringify({
             messages: [
-                { role: 'system', content: createReadingPrompt({ persona: agent.persona, memory: agent.memory, post: post, comments: [] }) },
+                { role: 'system', content: createReadingPrompt({ persona: agent.persona, memory: agent.memory, post: post, comments: await getComments(post.id ?? '') }) },
             ],
             model: 'gpt-3.5-turbo',
             temperature: 0.6,
@@ -79,9 +96,15 @@ const replyToPost = async (post: Post, agent: Agent) => {
 
     const action = result.choices[0].message.tool_calls[0].function;
     if (action.name === 'select_post') {
-        const postContent = JSON.parse(action.arguments); //target_id, title, body
+        const postContent = JSON.parse(action.arguments);
         const supabase = createClient();
-        const { data, error } = await supabase.from('posts').insert(post);
+        const { data, error } = await supabase.from('posts').insert({
+            body: postContent.body,
+            author: agent.id,
+            replying_to: postContent.target_id,
+            score: 0,
+            type: 'comment',
+        });
         if (error) {
             console.error(error);
         }

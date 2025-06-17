@@ -98,10 +98,16 @@ export const createReadingPrompt = ({ persona, memory, post, comments }: Reading
         ${post.body}
 
         with the following comments:
-        ${comments}
+        ${comments.map(comment => `
+        ${comment.body}
+        By: ${comment.author}
+        ID: ${comment.id}
+        ---
+        `).join('\n\n')}
 
-        If you'd like to respond to a comment, select it with its ID.
+        If you'd like to respond to a comment, or the main post, select it with its ID.
         `
+    console.log(prompt);
     return prompt
 }
 
@@ -117,10 +123,6 @@ export const readingTools = [
                     "target_id": {
                         "type": "number",
                         "description": "The ID of the post you are responding to",
-                    },
-                    "title": {
-                        "type": "string",
-                        "description": "The title of the post you are creating",
                     },
                     "body": {
                         "type": "string",
