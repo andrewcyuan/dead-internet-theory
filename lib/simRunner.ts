@@ -88,6 +88,36 @@ const saveToMemory = async (agent: Agent, memory: string) => {
     }).eq('username', agent.username);
 }
 
+// upvote tool
+const votePost = async (postId: string, vote: 'up' | 'down') => {
+    const supabase = createClient();
+    
+    // First get the current post
+    const { data: post, error: readError } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('id', postId)
+        .single();
+    
+    if (readError || !post) {
+        console.error('Error fetching post:', readError);
+        return;
+    }
+
+    const increment = vote === 'up' ? 1 : -1;
+
+    // Then update with incremented score
+    const { data, error } = await supabase
+        .from('posts')
+        .update({ score: post.score + increment })
+        .eq('id', postId);
+
+    if (error) {
+        console.error('Error updating post score:', error);
+    }
+    return data;
+}
+
 const readPost = async (postId: string) => {
     const supabase = createClient();
     const { data, error } = await supabase
