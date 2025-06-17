@@ -5,7 +5,7 @@ import type { UserProfile } from '@/lib/supabase';
 
 async function UserProfilesList() {
   const { data: profiles, error } = await supabase
-    .from('user_profiles')
+    .from('agent_profiles')
     .select('*')
     .order('created_at', { ascending: false });
 

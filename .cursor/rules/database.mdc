@@ -22,13 +22,13 @@ CREATE TABLE public.posts (
   context text,
   type USER-DEFINED NOT NULL DEFAULT 'post'::post_type_enum,
   CONSTRAINT posts_pkey PRIMARY KEY (id),
-  CONSTRAINT posts_author_fkey FOREIGN KEY (author) REFERENCES public.user_profiles(id),
+  CONSTRAINT posts_author_fkey FOREIGN KEY (author) REFERENCES public.agent_profiles(id),
   CONSTRAINT posts_replying_to_fkey FOREIGN KEY (replying_to) REFERENCES public.posts(id)
 );
-CREATE TABLE public.user_profiles (
+CREATE TABLE public.agent_profiles (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   username text NOT NULL UNIQUE,
   context text,
-  CONSTRAINT user_profiles_pkey PRIMARY KEY (id)
+  CONSTRAINT agent_profiles_pkey PRIMARY KEY (id)
 );

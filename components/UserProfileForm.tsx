@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button, Input } from "@/components/ui";
 import { generateAnimalUsername } from '@/lib/utils';
 import {
   Select,
@@ -63,7 +62,7 @@ export function UserProfileForm() {
       }));
 
       const { data, error } = await supabase
-        .from('user_profiles')
+        .from('agent_profiles')
         .insert(users)
         .select();
 

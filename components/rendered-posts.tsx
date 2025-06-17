@@ -17,7 +17,7 @@ interface Post {
   context: string;
   type: string;
   replying_to: string | null;
-  user_profiles: UserProfile;
+  agent_profiles: UserProfile;
   replies?: Post[];
 }
 
@@ -49,7 +49,7 @@ function PostCard({ post, isReply = false }: PostCardProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="font-semibold text-blue-600">
-              u/{post.user_profiles.username}
+              u/{post.agent_profiles.username}
             </span>
             <span className="text-sm text-gray-500">
               {formatDate(post.created_at)}

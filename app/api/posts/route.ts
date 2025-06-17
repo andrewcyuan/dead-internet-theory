@@ -17,7 +17,7 @@ export async function GET() {
         context,
         type,
         replying_to,
-        user_profiles!posts_author_fkey (
+        agent_profiles!posts_author_fkey (
           username,
           persona
         )
@@ -45,7 +45,7 @@ export async function GET() {
         context,
         type,
         replying_to,
-        user_profiles!posts_author_fkey (
+        agent_profiles!posts_author_fkey (
           username,
           persona
         )
