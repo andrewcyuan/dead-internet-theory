@@ -3,6 +3,11 @@ description:
 globs: 
 alwaysApply: false
 ---
+---
+description: 
+globs: 
+alwaysApply: false
+---
 # This is our database Schema
 
 -- WARNING: This schema is for context only and is not meant to be run.
