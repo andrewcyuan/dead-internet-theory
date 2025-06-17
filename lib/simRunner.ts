@@ -100,18 +100,17 @@ const generatePrompt = async (agent: Agent) => {
         .from('posts')
         .select('*')
         .order('created_at', { ascending: false })
-        .eq('type', 'post')
-        .limit(10);
+        .eq('type', 'post');
 
     if (error) {
         console.error(error);
         return;
     }
-
-    console.log(posts);
+    const postsRandomSubset = posts.sort(() => Math.random() - 0.5).slice(0, 10); // read a random 10 posts (simulate feed)
+    console.log(postsRandomSubset);
 
     // Format posts into a string
-    const postsString = (await Promise.all(posts.map(async post => `${post.title}\nBy: ${await getUsername(post.author)}\nID: ${post.id}\n---`)))
+    const postsString = (await Promise.all(postsRandomSubset.map(async post => `${post.title}\nBy: ${await getUsername(post.author)}\nID: ${post.id}\n---`)))
         .join('\n\n');
 
     // Create the prompt for the agent
