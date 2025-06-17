@@ -140,7 +140,7 @@ function buildPostTree(posts: any[]): Post[] {
         parentPost.replies = [];
       }
       parentPost.replies.push(currentPost);
-    } else if (!post.replying_to && post.type === 'post') {
+    } else if (!post.replying_to) {
       // This is a root post
       rootPosts.push(currentPost);
     }
@@ -297,7 +297,7 @@ export function RenderedPosts() {
             } as Post;
             
             setPosts(currentPosts => {
-              if (newPost.type === 'post' && !newPost.replying_to) {
+              if (!newPost.replying_to) {
                 // It's a top-level post
                 const updatedPosts = [postWithNew, ...currentPosts];
                 
