@@ -32,7 +32,6 @@ const selectRandomAgent = async () => {
     // truly select a random agent
     const randomIndex = Math.floor(Math.random() * (data?.length ?? 0));
     const agent = data?.[randomIndex];
-    console.log(agent);
     return agent;
 }
 
@@ -72,8 +71,9 @@ const countPosts = async () => {
     return data?.[0]?.count ?? 0;
 }
 
-const replyToPost = async (post: Post, agent: Agent) => {
-
+const readPost = async (post: Post, agent: Agent) => {
+    const comments = await getComments(post.replying_to ?? '');
+    const prompt = createReadingPrompt({ persona: agent.persona, memory: agent.memory, post: post, comments: comments });
     // Call OpenAI API
     const response = await fetch('/api/openai', {
         method: 'POST',
@@ -82,11 +82,11 @@ const replyToPost = async (post: Post, agent: Agent) => {
         },
         body: JSON.stringify({
             messages: [
-                { role: 'system', content: createReadingPrompt({ persona: agent.persona, memory: agent.memory, post: post, comments: await getComments(post.id ?? '') }) },
+                { role: 'system', content: prompt },
             ],
             model: 'gpt-3.5-turbo',
             temperature: 0.6,
-            tool_choice: 'required',
+            tool_choice: 'auto',
             tools: readingTools,
         }),
     });
@@ -97,11 +97,20 @@ const replyToPost = async (post: Post, agent: Agent) => {
     const action = result.choices[0].message.tool_calls[0].function;
     if (action.name === 'select_post') {
         const postContent = JSON.parse(action.arguments);
+        console.log('postContent', postContent);
+        console.log('comments', comments);
+        console.log('inserted post', {
+            body: postContent.body,
+            author: agent.id,
+            replying_to: (postContent.target_id === 0 || comments.length === 0) ? post.replying_to : comments[postContent.target_id - 1].id,
+            score: 0,
+            type: 'comment',
+        });
         const supabase = createClient();
         const { data, error } = await supabase.from('posts').insert({
             body: postContent.body,
             author: agent.id,
-            replying_to: postContent.target_id,
+            replying_to: postContent.target_id === 0 ? post.replying_to : comments[postContent.target_id - 1].id,
             score: 0,
             type: 'comment',
         });
@@ -148,20 +157,6 @@ const votePost = async (postId: string, vote: 'up' | 'down') => {
     return data;
 }
 
-const readPost = async (postId: string) => {
-    const supabase = createClient();
-    const { data, error } = await supabase
-        .from('posts')
-        .select('*')
-        .eq('id', postId)
-        .single();
-    if (error) {
-        console.error(error);
-        return null;
-    }
-    return data;
-}
-
 const createNewPost = async (post: Post) => {
     const supabase = createClient();
     const { data, error } = await supabase
@@ -201,34 +196,6 @@ const generatePrompt = async (agent: Agent) => {
     return [prompt, postsRandomSubset];
 }
 
-const upvotePost = async (postId: string) => {
-    const supabase = createClient();
-    const { data: post, error: postError } = await supabase.from('posts').select('*').eq('id', postId).single();
-    if (postError) {
-        console.error(postError);
-    }
-    const { data, error } = await supabase.from('posts').update({
-        score: post.score + 1,
-    }).eq('id', postId);
-    if (error) {
-        console.error(error);
-    }
-}
-
-const downvotePost = async (postId: string) => {
-    const supabase = createClient();
-    const { data: post, error: postError } = await supabase.from('posts').select('*').eq('id', postId).single();
-    if (postError) {
-        console.error(postError);
-    }
-    const { data, error } = await supabase.from('posts').update({
-        score: post.score - 1,
-    }).eq('id', postId);
-    if (error) {
-        console.error(error);
-    }
-}
-
 const interact = async (agent: Agent) => {
     // Get all posts for context (check that type column is 'post')
     const r = await generatePrompt(agent);
@@ -256,13 +223,13 @@ const interact = async (agent: Agent) => {
     console.log(result);
     const action = result.choices[0].message.tool_calls[0].function;
 
-    if (action.name === 'select_post') {
+    if (action.name === 'read_post') {
         const postContent = JSON.parse(action.arguments); //target_id, title, body
 
         console.log("index", postContent.target_id);
         console.log("")
 
-        const post = await replyToPost({
+        const post = await readPost({
             body: posts?.[postContent.target_id - 1].body,
             author: agent.id,
             replying_to: posts?.[postContent.target_id - 1].id,
@@ -279,16 +246,6 @@ const interact = async (agent: Agent) => {
             author: agent.id,
             type: 'post',
         });
-    }
-
-    if (action.name === 'upvote') {
-        const postId = JSON.parse(action.arguments);
-        const post = await upvotePost(postId);
-    }
-
-    if (action.name === 'downvote') {
-        const postId = JSON.parse(action.arguments);
-        const post = await downvotePost(postId);
     }
 
     return null;

@@ -43,7 +43,6 @@ export const createPostSelectionPrompt = ({ persona, memory, posts }: PromptPara
         - create a new post based on your persona and memory.
         `
 
-    console.log(postsString);
     return prompt;
 }
 
@@ -51,7 +50,7 @@ export const tools = [
     {
         "type": "function",
         "function": {
-            "name": "select_post",
+            "name": "read_post",
             "description": "Create a new post responding to the post with the target ID",
             "parameters": {
                 "type": "object",
@@ -61,7 +60,7 @@ export const tools = [
                         "description": "The ID of the post you are responding to",
                     }
                 },
-                "required": ["title", "body"]
+                "required": ["target_id"]
             }
         }
     },
@@ -89,6 +88,14 @@ export const tools = [
 ]
 
 export const createReadingPrompt = ({ persona, memory, post, comments }: ReadingPromptParams): string => {
+    let i = 0;
+    const commentsString = comments.map(comment => {
+        i++;
+        return `
+        ${i}. ${comment.body}
+        ID: ${i}
+        `
+    }).join('\n\n');
     const prompt = `
         You are an agent with this persona: ${persona}
         
@@ -98,14 +105,9 @@ export const createReadingPrompt = ({ persona, memory, post, comments }: Reading
         ${post.body}
 
         with the following comments:
-        ${comments.map(comment => `
-        ${comment.body}
-        By: ${comment.author}
-        ID: ${comment.id}
-        ---
-        `).join('\n\n')}
+        ${commentsString}
 
-        If you'd like to respond to a comment, or the main post, select it with its ID.
+        If you'd like to respond to a comment or the main post, select it with its ID.
         `
     console.log(prompt);
     return prompt
@@ -129,7 +131,7 @@ export const readingTools = [
                         "description": "The body of the post you are creating",
                     }
                 },
-                "required": ["target_id", "title", "body"]
+                "required": ["target_id", "body"]
             }
         }
     }

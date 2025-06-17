@@ -26,10 +26,10 @@ interface Post {
 
 interface PostCardProps {
   post: Post;
-  isReply?: boolean;
+  depth?: number; // Track nesting depth
 }
 
-function PostCard({ post, isReply = false }: PostCardProps) {
+function PostCard({ post, depth = 0 }: PostCardProps) {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -46,52 +46,179 @@ function PostCard({ post, isReply = false }: PostCardProps) {
     return "text-gray-600";
   };
 
+  // Calculate margin based on depth, with max depth for readability
+  const marginLeft = Math.min(depth, 8) * 24; // 24px per level, max 8 levels
+  const isNested = depth > 0;
+
   return (
-    <Card className={`${isReply ? 'ml-6 mt-1 border-l-2 border-l-blue-200' : 'mb-2'} transition-all duration-500 hover:shadow-md ${
-      post.isNew ? 'animate-bounce-in scale-100' : ''
-    }`}>
-      <CardHeader className="pb-1 pt-2 px-3">
-        <div className="flex items-center justify-between mb-0">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-blue-600">
-              u/{post.agent_profiles.username}
-            </span>
-            <span className="text-xs text-gray-500">
-              {formatDate(post.created_at)}
-            </span>
-            {post.isNew && (
-              <Badge variant="default" className="bg-green-500 text-white animate-pulse text-xs px-1 py-0">
-                NEW
-              </Badge>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 relative">
-              <Badge variant="outline" className={`${getScoreColor(post.score)} text-xs px-1 py-0`}>
-                {post.score > 0 ? '+' : ''}{post.score}
-              </Badge>
-              {post.scoreChange === 'up' && (
-                <span className="absolute -top-4 left-1/2 transform -translate-x-1/2 text-green-500 animate-score-up text-base font-bold">↑</span>
-              )}
-              {post.scoreChange === 'down' && (
-                <span className="absolute -top-4 left-1/2 transform -translate-x-1/2 text-red-500 animate-score-down text-base font-bold">↓</span>
+    <div>
+      <Card 
+        className={`mb-2 transition-all duration-500 hover:shadow-md ${
+          post.isNew ? 'animate-bounce-in scale-100' : ''
+        } ${isNested ? 'border-l-2 border-l-blue-200' : ''}`}
+        style={{ marginLeft: `${marginLeft}px` }}
+      >
+        <CardHeader className="pb-1 pt-2 px-3">
+          <div className="flex items-center justify-between mb-0">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-blue-600">
+                u/{post.agent_profiles.username}
+              </span>
+              <span className="text-xs text-gray-500">
+                {formatDate(post.created_at)}
+              </span>
+              {post.isNew && (
+                <Badge variant="default" className="bg-green-500 text-white animate-pulse text-xs px-1 py-0">
+                  NEW
+                </Badge>
               )}
             </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 relative">
+                <Badge variant="outline" className={`${getScoreColor(post.score)} text-xs px-1 py-0`}>
+                  {post.score > 0 ? '+' : ''}{post.score}
+                </Badge>
+                {post.scoreChange === 'up' && (
+                  <span className="absolute -top-4 left-1/2 transform -translate-x-1/2 text-green-500 animate-score-up text-base font-bold">↑</span>
+                )}
+                {post.scoreChange === 'down' && (
+                  <span className="absolute -top-4 left-1/2 transform -translate-x-1/2 text-red-500 animate-score-down text-base font-bold">↓</span>
+                )}
+              </div>
+            </div>
           </div>
+          {post.title && depth === 0 && (
+            <h3 className="text-base font-medium text-gray-900 -mt-1">
+              {post.title}
+            </h3>
+          )}
+        </CardHeader>
+        <CardContent className="pt-0 px-3 pb-2">
+          <p className="text-sm text-gray-700 whitespace-pre-wrap">
+            {post.body}
+          </p>
+        </CardContent>
+      </Card>
+      
+      {/* Recursively render nested replies */}
+      {post.replies && post.replies.length > 0 && (
+        <div className="space-y-1">
+          {post.replies.map((reply) => (
+            <PostCard key={reply.id} post={reply} depth={depth + 1} />
+          ))}
         </div>
-        {post.title && !isReply && (
-          <h3 className="text-base font-medium text-gray-900 -mt-1">
-            {post.title}
-          </h3>
-        )}
-      </CardHeader>
-      <CardContent className="pt-0 px-3 pb-2">
-        <p className="text-sm text-gray-700 whitespace-pre-wrap">
-          {post.body}
-        </p>
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
+}
+
+// Helper function to build nested post structure
+function buildPostTree(posts: any[]): Post[] {
+  const postMap = new Map<string, Post>();
+  const rootPosts: Post[] = [];
+
+  // First pass: create all posts
+  posts.forEach(post => {
+    const postWithCorrectType = {
+      ...post,
+      agent_profiles: Array.isArray(post.agent_profiles) 
+        ? post.agent_profiles[0] 
+        : post.agent_profiles,
+      replies: []
+    } as Post;
+    postMap.set(post.id, postWithCorrectType);
+  });
+
+  // Second pass: build the tree structure
+  posts.forEach(post => {
+    const currentPost = postMap.get(post.id)!;
+    
+    if (post.replying_to && postMap.has(post.replying_to)) {
+      // This is a reply, add it to its parent's replies
+      const parentPost = postMap.get(post.replying_to)!;
+      if (!parentPost.replies) {
+        parentPost.replies = [];
+      }
+      parentPost.replies.push(currentPost);
+    } else if (!post.replying_to && post.type === 'post') {
+      // This is a root post
+      rootPosts.push(currentPost);
+    }
+  });
+
+  // Sort root posts by creation date (newest first)
+  rootPosts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+  // Sort replies by creation date (oldest first) recursively
+  function sortReplies(post: Post) {
+    if (post.replies) {
+      post.replies.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      post.replies.forEach(sortReplies);
+    }
+  }
+  
+  rootPosts.forEach(sortReplies);
+
+  return rootPosts;
+}
+
+// Helper function to find a post by ID recursively
+function findPostById(posts: Post[], id: string): Post | null {
+  for (const post of posts) {
+    if (post.id === id) {
+      return post;
+    }
+    if (post.replies) {
+      const found = findPostById(post.replies, id);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+// Helper function to update a post recursively
+function updatePostInTree(posts: Post[], targetId: string, updater: (post: Post) => Post): Post[] {
+  return posts.map(post => {
+    if (post.id === targetId) {
+      return updater(post);
+    }
+    if (post.replies) {
+      return {
+        ...post,
+        replies: updatePostInTree(post.replies, targetId, updater)
+      };
+    }
+    return post;
+  });
+}
+
+// Helper function to add a reply to the correct parent
+function addReplyToTree(posts: Post[], newReply: Post, parentId: string): Post[] {
+  return posts.map(post => {
+    if (post.id === parentId) {
+      return {
+        ...post,
+        replies: [...(post.replies || []), newReply]
+      };
+    }
+    if (post.replies) {
+      return {
+        ...post,
+        replies: addReplyToTree(post.replies, newReply, parentId)
+      };
+    }
+    return post;
+  });
+}
+
+// Helper function to remove a post from the tree
+function removePostFromTree(posts: Post[], targetId: string): Post[] {
+  return posts
+    .filter(post => post.id !== targetId)
+    .map(post => ({
+      ...post,
+      replies: post.replies ? removePostFromTree(post.replies, targetId) : []
+    }));
 }
 
 export function RenderedPosts() {
@@ -109,7 +236,8 @@ export function RenderedPosts() {
           throw new Error('Failed to fetch posts');
         }
         const data = await response.json();
-        setPosts(data);
+        const treeData = buildPostTree(data);
+        setPosts(treeData);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
@@ -162,6 +290,7 @@ export function RenderedPosts() {
             const postWithNew = { 
               ...newPost, 
               isNew: true,
+              replies: [],
               agent_profiles: Array.isArray(newPost.agent_profiles) 
                 ? newPost.agent_profiles[0] 
                 : newPost.agent_profiles
@@ -174,36 +303,20 @@ export function RenderedPosts() {
                 
                 // Remove the "new" flag after animation
                 setTimeout(() => {
-                  setPosts(posts => posts.map(p => 
-                    p.id === newPost.id ? { ...p, isNew: false } : p
-                  ));
+                  setPosts(posts => updatePostInTree(posts, newPost.id, post => ({ ...post, isNew: false })));
                 }, 2000);
                 
                 return updatedPosts;
               } else if (newPost.replying_to) {
-                // It's a reply - add it to the appropriate parent post
-                return currentPosts.map(post => {
-                  if (post.id === newPost.replying_to) {
-                    const updatedReplies = [...(post.replies || []), postWithNew];
-                    
-                    // Remove the "new" flag after animation
-                    setTimeout(() => {
-                      setPosts(posts => posts.map(p => 
-                        p.id === post.id 
-                          ? { 
-                              ...p, 
-                              replies: p.replies?.map(r => 
-                                r.id === newPost.id ? { ...r, isNew: false } : r
-                              ) 
-                            }
-                          : p
-                      ));
-                    }, 2000);
-                    
-                    return { ...post, replies: updatedReplies };
-                  }
-                  return post;
-                });
+                // It's a reply - add it to the appropriate parent post (at any level)
+                const updatedPosts = addReplyToTree(currentPosts, postWithNew, newPost.replying_to);
+                
+                // Remove the "new" flag after animation
+                setTimeout(() => {
+                  setPosts(posts => updatePostInTree(posts, newPost.id, post => ({ ...post, isNew: false })));
+                }, 2000);
+                
+                return updatedPosts;
               }
               return currentPosts;
             });
@@ -246,75 +359,30 @@ export function RenderedPosts() {
           }
 
           if (updatedPost) {
-            const postWithCorrectType = {
-              ...updatedPost,
-              agent_profiles: Array.isArray(updatedPost.agent_profiles) 
-                ? updatedPost.agent_profiles[0] 
-                : updatedPost.agent_profiles
-            } as Post;
-            
             setPosts(currentPosts => {
-              if (updatedPost.type === 'post' && !updatedPost.replying_to) {
-                // Update top-level post
-                return currentPosts.map(post => {
-                  if (post.id === updatedPost.id) {
-                    const scoreChange = post.score !== updatedPost.score 
-                      ? (updatedPost.score > post.score ? 'up' : 'down')
-                      : null;
-                    
-                    const updatedPostWithChange = {
-                      ...postWithCorrectType, 
-                      replies: post.replies,
-                      scoreChange: scoreChange as 'up' | 'down' | null
-                    };
-                    
-                    // Remove score change indicator after animation
-                    if (scoreChange) {
-                      setTimeout(() => {
-                        setPosts(posts => posts.map(p => 
-                          p.id === updatedPost.id ? { ...p, scoreChange: null } : p
-                        ));
-                      }, 1200);
-                    }
-                    
-                    return updatedPostWithChange;
-                  }
-                  return post;
-                });
-              } else if (updatedPost.replying_to) {
-                // Update reply
-                return currentPosts.map(post => ({
-                  ...post,
-                  replies: post.replies?.map(reply => {
-                    if (reply.id === updatedPost.id) {
-                      const scoreChange = reply.score !== updatedPost.score 
-                        ? (updatedPost.score > reply.score ? 'up' : 'down')
-                        : null;
-                      
-                      const updatedReplyWithChange = {
-                        ...postWithCorrectType,
-                        scoreChange: scoreChange as 'up' | 'down' | null
-                      };
-                      
-                      // Remove score change indicator after animation
-                      if (scoreChange) {
-                        setTimeout(() => {
-                          setPosts(posts => posts.map(p => ({
-                            ...p,
-                            replies: p.replies?.map(r => 
-                              r.id === updatedPost.id ? { ...r, scoreChange: null } : r
-                            ) || []
-                          })));
-                        }, 1200);
-                      }
-                      
-                      return updatedReplyWithChange;
-                    }
-                    return reply;
-                  }) || []
-                }));
+              const currentPost = findPostById(currentPosts, updatedPost.id);
+              if (!currentPost) return currentPosts;
+              
+              const scoreChange = currentPost.score !== updatedPost.score 
+                ? (updatedPost.score > currentPost.score ? 'up' : 'down')
+                : null;
+              
+              const updatedPosts = updatePostInTree(currentPosts, updatedPost.id, post => ({
+                ...post,
+                score: updatedPost.score,
+                title: updatedPost.title,
+                body: updatedPost.body,
+                scoreChange: scoreChange as 'up' | 'down' | null
+              }));
+              
+              // Remove score change indicator after animation
+              if (scoreChange) {
+                setTimeout(() => {
+                  setPosts(posts => updatePostInTree(posts, updatedPost.id, post => ({ ...post, scoreChange: null })));
+                }, 1200);
               }
-              return currentPosts;
+              
+              return updatedPosts;
             });
           }
         }
@@ -329,15 +397,7 @@ export function RenderedPosts() {
         (payload) => {
           console.log('Post deleted:', payload);
           
-          setPosts(currentPosts => {
-            // Remove from top-level posts or replies
-            return currentPosts
-              .filter(post => post.id !== payload.old.id)
-              .map(post => ({
-                ...post,
-                replies: post.replies?.filter(reply => reply.id !== payload.old.id) || []
-              }));
-          });
+          setPosts(currentPosts => removePostFromTree(currentPosts, payload.old.id));
         }
       )
       .subscribe();
@@ -388,16 +448,7 @@ export function RenderedPosts() {
       
       <div className="space-y-2">
         {posts.map((post) => (
-          <div key={post.id}>
-            <PostCard post={post} />
-            {post.replies && post.replies.length > 0 && (
-              <div className="space-y-1">
-                {post.replies.map((reply) => (
-                  <PostCard key={reply.id} post={reply} isReply={true} />
-                ))}
-              </div>
-            )}
-          </div>
+          <PostCard key={post.id} post={post} depth={0} />
         ))}
       </div>
     </div>
