@@ -24,7 +24,6 @@ interface Role {
 
 export function UserProfileForm() {
   const [mode, setMode] = useState<'multi' | 'random'>('multi');
-  const [numberOfUsers, setNumberOfUsers] = useState<number>(1);
   const [selectedRole, setSelectedRole] = useState<string>('');
   const [roles, setRoles] = useState<Role[]>([]);
   const [isLoading, setIsLoading] = useState(false);

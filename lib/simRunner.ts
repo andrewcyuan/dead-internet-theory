@@ -339,32 +339,78 @@ const updateMemory = async (agent: Agent) => {
         return; // No posts by this agent, so nothing to update memory with.
     }
 
-    let memoryLog = [];
+    let memorySummaries = [];
 
-    // For each post, get replies and format the memory string
+    // For each post, get replies, summarize, and format the memory string
     for (const post of agentPosts) {
         const { data: replies, error: repliesError } = await supabase
             .from('posts')
             .select('body')
             .eq('replying_to', post.id);
 
-        let responseText = 'There were no responses.';
         if (repliesError) {
             console.error(`Error fetching replies for post ${post.id}:`, repliesError);
-            responseText = 'Could not fetch responses.';
-        } else if (replies && replies.length > 0) {
-            const replyBodies = replies.map(r => `- ${r.body}`).join('\n');
-            responseText = `Here were the responses:\n${replyBodies}`;
+            continue; // Skip this post if replies can't be fetched
         }
         
+        const replyBodies = (replies && replies.length > 0)
+            ? replies.map(r => `- ${r.body}`).join('\n')
+            : 'There were no responses.';
+
         const postIdentifier = post.title
-            ? `{title: "${post.title}", body: "${post.body}"}`
-            : `{body: "${post.body}"}`;
-        
-        memoryLog.push(`you posted this: ${postIdentifier}. ${responseText}`);
+            ? `Title: "${post.title}"\nBody: "${post.body}"`
+            : `Body: "${post.body}"`;
+
+        const summarizationPrompt = `Summarize the following interaction in this exact format: "you posted about this: {summarized post}. The responses were generally {a few adjectives}"
+
+Post:
+${postIdentifier}
+
+Responses:
+${replyBodies}`;
+
+        try {
+            const response = await fetch('/api/openai', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    messages: [
+                        { role: 'system', content: "You are an AI assistant that summarizes posts and their responses." },
+                        { role: 'user', content: summarizationPrompt },
+                    ],
+                    model: 'gpt-3.5-turbo',
+                    temperature: 0.3,
+                }),
+            });
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`OpenAI API call failed with status ${response.status}: ${errorText}`);
+                continue;
+            }
+
+            const result = await response.json();
+            if (result.choices && result.choices[0] && result.choices[0].message) {
+                const summary = result.choices[0].message.content;
+                if (summary) {
+                    memorySummaries.push(summary);
+                }
+            } else {
+                console.error("Unexpected OpenAI API response structure:", result);
+            }
+        } catch (error) {
+            console.error("Error summarizing memory:", error);
+        }
     }
 
-    const newMemory = memoryLog.join('\n\n');
+    if (memorySummaries.length === 0) {
+        console.log("No new memory generated for agent:", agent.username);
+        return;
+    }
+    
+    const newMemory = memorySummaries.join('\n\n');
 
     // Update the agent's memory
     const { error: updateError } = await supabase
