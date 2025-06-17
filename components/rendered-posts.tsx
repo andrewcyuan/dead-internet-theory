@@ -76,11 +76,6 @@ function PostCard({ post, isReply = false }: PostCardProps) {
         <p className="text-gray-700 whitespace-pre-wrap">
           {post.body}
         </p>
-        {post.context && (
-          <div className="mt-2 p-2 bg-gray-50 rounded text-sm text-gray-600 italic">
-            Context: {post.context}
-          </div>
-        )}
       </CardContent>
     </Card>
   );
