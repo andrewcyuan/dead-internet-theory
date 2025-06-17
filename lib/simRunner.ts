@@ -94,7 +94,12 @@ const readPost = async (post: Post, agent: Agent) => {
     const result = await response.json();
     console.log(result);
 
-    const action = result.choices[0].message.tool_calls[0].function;
+    let action;
+    try {
+        action = result.choices[0].message.tool_calls[0].function;
+    } catch (error) {
+        return;
+    }
     if (action.name === 'select_post') {
         const postContent = JSON.parse(action.arguments);
         console.log('postContent', postContent);
@@ -313,14 +318,11 @@ const interact = async (agent: Agent) => {
 }
 
 export const runSim = async (simConditions: SimConditions) => {
-    // delete all rows from posts table if type is comment
+    // delete all rows from posts table
     const supabase = createClient();
-    const { data, error } = await supabase.from('posts').delete().eq('type', 'comment');
-    if (error) {
-        console.error(error);
-    }
+    await supabase.from('posts').delete().neq('type', 'bruh');
 
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 10; i++) {
         // randomly select an agent
         const agent = await selectRandomAgent();
         console.log(agent);
