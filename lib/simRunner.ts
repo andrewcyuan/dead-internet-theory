@@ -145,40 +145,17 @@ const interact = async (agent: Agent) => {
 
     const result = await response.json();
     console.log(result);
-    let action;
-    if (!result.choices) {
-        action = result
-    } else {
-        action = result.choices[0].message.content;
+    const action = result.choices[0].message.tool_calls[0].function;
+
+    if (action.name === 'read_post') {
+        const postId = action.arguments.post_id;
+        const post = await readPost(postId);
     }
 
-    // Parse the action and execute the appropriate tool
-    if (action.includes('READ_POST')) {
-        const postId = action.split('READ_POST:')[1].trim();
-        const post = await readPost(postId);
-        if (post) {
-            await saveToMemory(agent, `Read post: ${post.title}`);
-            return post;
-        }
-    } else if (action.includes('CREATE_POST')) {
-        const postContent = action.split('CREATE_POST:')[1].trim();
+    if (action.name === 'create_post') {
+        const postContent = action.arguments.post_content;
         const [title, ...bodyParts] = postContent.split('\n');
         const body = bodyParts.join('\n');
-
-        const newPost: Post = {
-            score: 0,
-            title: title,
-            body: body,
-            author: agent.username,
-            replying_to: '',
-            context: '',
-            type: 'post'
-        };
-        const createdPost = await createNewPost(newPost);
-        if (createdPost) {
-            await saveToMemory(agent, `Created post: ${createdPost.title}`);
-            return createdPost;
-        }
     }
 
     return null;

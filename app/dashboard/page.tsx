@@ -68,7 +68,7 @@ export default function DashboardPage() {
     <div className="container py-8 px-4 md:px-6">
       <h1 className="text-3xl font-bold mb-8">User Profiles Dashboard</h1>
 
-      <div className="max-w-md">
+      <div className="w-full">
         <h2 className="text-xl font-semibold mb-4">Create New Profile</h2>
         <UserProfileForm />
       </div>
