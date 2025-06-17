@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/client";
+import { createPostSelectionPrompt, tools } from "./prompts";
 
 export type Post = {
+    id?: string;
     score: number;
     title: string;
     body: string;
@@ -8,6 +10,7 @@ export type Post = {
     replying_to: string;
     context: string;
     type: string;
+    created_at?: string;
 }
 
 export type Agent = {
@@ -22,11 +25,20 @@ export type SimConditions = {
 
 const selectRandomAgent = async () => {
     const supabase = createClient();
-    const { data, error } = await supabase.from('agent_profiles').select('*').order('random').limit(1);
+    const { data, error } = await supabase.from('agent_profiles').select('*').order('created_at', { ascending: false }).limit(1);
     if (error) {
         console.error(error);
     }
     return data?.[0];
+}
+
+const getUsername = async (id: string) => {
+    const supabase = createClient();
+    const { data, error } = await supabase.from('agent_profiles').select('username').eq('id', id).single();
+    if (error) {
+        console.error(error);
+    }
+    return data?.username;
 }
 
 const countPosts = async () => {
@@ -54,24 +66,135 @@ const saveToMemory = async (agent: Agent, memory: string) => {
     }).eq('username', agent.username);
 }
 
-const interact = async (agent: Agent) => {
-    // feed all post titles to the agent and ask it to select one to interact with or create a new post
-    // if it selects a post
-    // return selected post content and all threads, then ask it to generate a new response
-    // after response, ask it to save something to memory
+const readPost = async (postId: string) => {
+    const supabase = createClient();
+    const { data, error } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('id', postId)
+        .single();
+    if (error) {
+        console.error(error);
+        return null;
+    }
+    return data;
+}
 
-    return agent.persona;
+const createNewPost = async (post: Post) => {
+    const supabase = createClient();
+    const { data, error } = await supabase
+        .from('posts')
+        .insert(post)
+        .select()
+        .single();
+    if (error) {
+        console.error(error);
+        return null;
+    }
+    return data;
+}
+
+const generatePrompt = async (agent: Agent) => {
+    const supabase = createClient();
+    const { data: posts, error } = await supabase
+        .from('posts')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .eq('type', 'post')
+        .limit(10);
+
+    if (error) {
+        console.error(error);
+        return;
+    }
+
+    console.log(posts);
+
+    // Format posts into a string
+    const postsString = (await Promise.all(posts.map(async post => `${post.title}\nBy: ${await getUsername(post.author)}\nID: ${post.id}\n---`)))
+        .join('\n\n');
+
+    // Create the prompt for the agent
+    const prompt = createPostSelectionPrompt({
+        persona: agent.persona,
+        memory: agent.memory,
+        posts: postsString,
+    });
+
+    return prompt;
+}
+
+const interact = async (agent: Agent) => {
+    // Get all posts for context (check that type column is 'post')
+    const prompt = await generatePrompt(agent);
+
+    // Call OpenAI API
+    const response = await fetch('/api/openai', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            messages: [
+                { role: 'system', content: prompt },
+            ],
+            model: 'gpt-3.5-turbo',
+            temperature: 0.7,
+            tools: tools,
+        }),
+    });
+
+    const result = await response.json();
+    console.log(result);
+    let action;
+    if (!result.choices) {
+        action = result
+    } else {
+        action = result.choices[0].message.content;
+    }
+
+    // Parse the action and execute the appropriate tool
+    if (action.includes('READ_POST')) {
+        const postId = action.split('READ_POST:')[1].trim();
+        const post = await readPost(postId);
+        if (post) {
+            await saveToMemory(agent, `Read post: ${post.title}`);
+            return post;
+        }
+    } else if (action.includes('CREATE_POST')) {
+        const postContent = action.split('CREATE_POST:')[1].trim();
+        const [title, ...bodyParts] = postContent.split('\n');
+        const body = bodyParts.join('\n');
+
+        const newPost: Post = {
+            score: 0,
+            title: title,
+            body: body,
+            author: agent.username,
+            replying_to: '',
+            context: '',
+            type: 'post'
+        };
+        const createdPost = await createNewPost(newPost);
+        if (createdPost) {
+            await saveToMemory(agent, `Created post: ${createdPost.title}`);
+            return createdPost;
+        }
+    }
+
+    return null;
 }
 
 export const runSim = async (simConditions: SimConditions) => {
-    while (await countPosts() < simConditions.maxPosts) {
-        // randomly select an agent
-        const agent = await selectRandomAgent();
-        if (!agent) {
-            continue;
-        }
-
-        // interact with the agent
-        const result = await interact(agent);
+    // while (await countPosts() < simConditions.maxPosts) {
+    // randomly select an agent
+    const agent = await selectRandomAgent();
+    console.log(agent);
+    if (!agent) {
+        // continue;
     }
+
+    // interact with the agent
+    const result = await interact(agent);
+    // }
 }

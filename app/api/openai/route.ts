@@ -25,6 +25,7 @@ export async function POST(req: Request) {
       temperature: body.temperature || 0.7,
       max_tokens: body.max_tokens,
       stream: body.stream || false,
+      tools: body.tools || [],
     });
 
     return NextResponse.json(completion);

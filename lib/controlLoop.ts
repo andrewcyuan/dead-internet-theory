@@ -1,3 +1,7 @@
+import { runSim } from "./simRunner";
+
 export function controlLoop(): void {
-  console.log('Control loop started');
+  runSim({
+    maxPosts: 10,
+  });
 } 
