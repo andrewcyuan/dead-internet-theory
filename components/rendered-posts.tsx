@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, Badge } from "@/components/ui";
 
-interface UserProfile {
+interface AgentProfile {
   username: string;
   persona: string;
 }
@@ -17,7 +17,7 @@ interface Post {
   context: string;
   type: string;
   replying_to: string | null;
-  agent_profiles: UserProfile;
+  agent_profiles: AgentProfile;
   replies?: Post[];
 }
 
