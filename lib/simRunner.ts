@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
-import { createPostSelectionPrompt, createReadingPrompt, readingTools, tools } from "./prompts";
+import { createPostSelectionPrompt, createReadingPrompt, createVotingPrompt, readingTools, tools, votingTools } from "./prompts";
 
 export type Post = {
     id?: string;
@@ -210,9 +210,9 @@ const interact = async (agent: Agent) => {
     // Get all posts for context (check that type column is 'post')
     const r = await generatePrompt(agent);
     const prompt = r?.[0];
-    const posts = r?.[1];
+    const posts = r?.[1] as Post[];
 
-    // Call OpenAI API
+    // Call OpenAI API for read / reply
     const response = await fetch('/api/openai', {
         method: 'POST',
         headers: {
@@ -258,14 +258,65 @@ const interact = async (agent: Agent) => {
         });
     }
 
-    if (action.name === 'upvote') {
-        const postId = JSON.parse(action.arguments);
-        const post = await upvotePost(postId);
-    }
+    // choose whether to upvote, downvote, or do nothing for each post
+    console.log("Starting voting process for agent:", agent.username);
+    const votingPrompt = createVotingPrompt({
+        persona: agent.persona,
+        memory: agent.memory,
+        posts: posts as Post[],
+    });
 
-    if (action.name === 'downvote') {
-        const postId = JSON.parse(action.arguments);
-        const post = await downvotePost(postId);
+    try {
+        console.log("Making voting API call...");
+        const votingResponse = await fetch('/api/openai', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                messages: [
+                    { role: 'system', content: votingPrompt },   
+                ],
+                model: 'gpt-3.5-turbo',
+                temperature: 0.6,
+                tools: votingTools,
+                tool_choice: 'required',
+            }),
+        });
+
+        console.log("Voting API response status:", votingResponse.status);
+        
+        if (!votingResponse.ok) {
+            const errorText = await votingResponse.text();
+            console.error("Voting API error:", errorText);
+            return null;
+        }
+
+        const votingResult = await votingResponse.json();
+        console.log("votingResult", votingResult);
+
+        if (votingResult.choices && votingResult.choices[0] && votingResult.choices[0].message && votingResult.choices[0].message.tool_calls) {
+            const votingAction = votingResult.choices[0].message.tool_calls[0].function;
+            if (votingAction.name === 'vote_post') {
+                const votingData = JSON.parse(votingAction.arguments);
+                console.log("Parsed voting data:", votingData);
+                const votes = votingData.votes; // Extract votes from the correct property
+                console.log("Processing votes:", votes);
+                for (const vote of votes) {
+                    if (vote.action !== 'none') { // Only process actual votes
+                        const targetPostId = posts[vote.post_id - 1]?.id;
+                        console.log(`Voting ${vote.action} on post ${vote.post_id} (${targetPostId})`);
+                        if (targetPostId) {
+                            await votePost(targetPostId, vote.action);
+                        }
+                    }
+                }
+            }
+        } else {
+            console.error("Unexpected voting result structure:", votingResult);
+        }
+    } catch (error) {
+        console.error("Error in voting process:", error);
     }
 
     return null;
@@ -279,7 +330,7 @@ export const runSim = async (simConditions: SimConditions) => {
         console.error(error);
     }
 
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 3; i++) {
         // randomly select an agent
         const agent = await selectRandomAgent();
         console.log(agent);

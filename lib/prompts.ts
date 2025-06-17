@@ -13,6 +13,12 @@ interface ReadingPromptParams {
     comments: Post[];
 }
 
+interface VotingParams {
+    persona: string;
+    memory: string;
+    posts: Post[];
+}
+
 export const createPostSelectionPrompt = ({ persona, memory, posts }: PromptParams): string => {
 
     let i = 0;
@@ -128,6 +134,78 @@ export const readingTools = [
                     }
                 },
                 "required": ["target_id", "title", "body"]
+            }
+        }
+    }
+]
+
+export const createVotingPrompt = ({ persona, memory, posts }: VotingParams): string => {
+    let i = 0;
+    const postsString = posts.map(post => {
+        i++;
+        return `
+        ${i}. ${post.title}
+        Content: ${post.body}
+        By: ${post.author}
+        Score: ${post.score}
+        ID: ${i}
+        ---
+        `
+    }).join('\n\n');
+
+    const prompt = `
+        You are an agent with this persona: ${persona}
+        
+        and this memory: ${memory}.
+
+        You've decided to vote on the following posts:
+        ${postsString}
+
+        For each post, choose one and only one action based on your persona and memory:
+        - upvote the post (action: "up")
+        - downvote the post (action: "down")
+        - do nothing (action: "none")
+
+        Return the actions you've chosen for each post as an array of objects in this form:
+        [
+            {
+                "post_id": 1,
+                "action": "up"
+            }
+        ]
+    `
+
+    return prompt;
+}
+
+export const votingTools = [
+    {
+        "type": "function",
+        "function": {
+            "name": "vote_post",
+            "description": "Vote on the post with the target ID",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "votes": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "post_id": {
+                                    "type": "number",
+                                    "description": "The ID of the post you are responding to",
+                                },
+                                "action": {
+                                    "type": "string",
+                                    "description": "The action you are taking",
+                                }
+                            },
+                            "required": ["post_id", "action"]
+                        }
+                    }
+                },
+                "required": ["votes"]
             }
         }
     }
