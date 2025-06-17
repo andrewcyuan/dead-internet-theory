@@ -20,7 +20,6 @@ export function StartButton() {
   };
 
   return (
-<<<<<<< HEAD
     <div className="flex items-center gap-3">
       <div className="flex items-center gap-2">
         <label htmlFor="cycles" className="text-sm font-medium text-gray-700">
@@ -45,10 +44,5 @@ export function StartButton() {
         {isRunning ? 'Running...' : 'Begin Simulation'}
       </Button>
     </div>
-=======
-    <Button onClick={handleStart} className="bg-blue-600 hover:bg-blue-700">
-      Start Control Loop
-    </Button>
->>>>>>> refs/remotes/origin/main
   );
 } 

@@ -14,11 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-<<<<<<< HEAD
 import Link from 'next/link';
-=======
-import { StartButton } from './StartButton';
->>>>>>> refs/remotes/origin/main
 
 interface Role {
   role_id: number;
@@ -239,7 +235,6 @@ export function UserProfileForm() {
         </div>
       )}
 
-<<<<<<< HEAD
       <div className="flex flex-col gap-2 items-end">
         <Button
           type="submit"
@@ -267,31 +262,6 @@ export function UserProfileForm() {
           </Button>
         </Link>
       </div>
-=======
-      <Button 
-        type="submit" 
-        className="w-full" 
-        disabled={
-          isLoading || 
-          (mode === 'multi' && Object.values(randomDistribution).reduce((a, b) => a + b, 0) === 0) ||
-          (mode === 'random' && totalRandomAgents < 1)
-        }
-      >
-        {isLoading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Creating Agents...
-          </>
-        ) : mode === 'multi' ? (
-          'Generate Multi-Role Distribution'
-        ) : (
-          'Generate Random Distribution'
-        )}
-      </Button>
-
-      <StartButton />
-      <div className="h-4"></div>
->>>>>>> refs/remotes/origin/main
     </form>
   );
 } 
