@@ -156,6 +156,49 @@ export function TestRealtime() {
     }
   };
 
+  const updateRandomScore = async () => {
+    setLoading(true);
+    setMessage("");
+
+    try {
+      // Get existing posts
+      const { data: existingPosts } = await supabase
+        .from('posts')
+        .select('id, score')
+        .limit(10);
+
+      if (!existingPosts || existingPosts.length === 0) {
+        setMessage("No posts found to update. Create a post first!");
+        return;
+      }
+
+      const randomPost = existingPosts[Math.floor(Math.random() * existingPosts.length)];
+      
+      // Generate a score change (increase or decrease by 1-5)
+      const scoreChange = Math.random() > 0.5 
+        ? Math.floor(Math.random() * 5) + 1  // Increase
+        : -(Math.floor(Math.random() * 5) + 1); // Decrease
+      
+      const newScore = randomPost.score + scoreChange;
+
+      const { error: updateError } = await supabase
+        .from('posts')
+        .update({ score: newScore })
+        .eq('id', randomPost.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      setMessage(`✅ Score updated! ${randomPost.score} → ${newScore} (${scoreChange > 0 ? '+' : ''}${scoreChange})`);
+    } catch (error) {
+      console.error('Error updating score:', error);
+      setMessage(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Card className="mb-6 border-orange-200 bg-orange-50">
       <CardHeader>
@@ -213,6 +256,15 @@ export function TestRealtime() {
             className="border-green-300 text-green-700 hover:bg-green-50"
           >
             {loading ? "Creating..." : "💬 Create Test Reply"}
+          </Button>
+
+          <Button 
+            onClick={updateRandomScore}
+            disabled={loading}
+            variant="outline"
+            className="border-purple-300 text-purple-700 hover:bg-purple-50"
+          >
+            {loading ? "Updating..." : "🎯 Update Random Score"}
           </Button>
         </div>
 

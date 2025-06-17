@@ -21,6 +21,7 @@ interface Post {
   agent_profiles: AgentProfile;
   replies?: Post[];
   isNew?: boolean; // For animation
+  scoreChange?: 'up' | 'down' | null; // For score change animation
 }
 
 interface PostCardProps {
@@ -65,9 +66,17 @@ function PostCard({ post, isReply = false }: PostCardProps) {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className={`${getScoreColor(post.score)} text-xs px-1 py-0`}>
-              {post.score > 0 ? '+' : ''}{post.score}
-            </Badge>
+            <div className="flex items-center gap-1 relative">
+              <Badge variant="outline" className={`${getScoreColor(post.score)} text-xs px-1 py-0`}>
+                {post.score > 0 ? '+' : ''}{post.score}
+              </Badge>
+              {post.scoreChange === 'up' && (
+                <span className="absolute -top-4 left-1/2 transform -translate-x-1/2 text-green-500 animate-score-up text-base font-bold">↑</span>
+              )}
+              {post.scoreChange === 'down' && (
+                <span className="absolute -top-4 left-1/2 transform -translate-x-1/2 text-red-500 animate-score-down text-base font-bold">↓</span>
+              )}
+            </div>
           </div>
         </div>
         {post.title && !isReply && (
@@ -247,18 +256,62 @@ export function RenderedPosts() {
             setPosts(currentPosts => {
               if (updatedPost.type === 'post' && !updatedPost.replying_to) {
                 // Update top-level post
-                return currentPosts.map(post => 
-                  post.id === updatedPost.id 
-                    ? { ...postWithCorrectType, replies: post.replies }
-                    : post
-                );
+                return currentPosts.map(post => {
+                  if (post.id === updatedPost.id) {
+                    const scoreChange = post.score !== updatedPost.score 
+                      ? (updatedPost.score > post.score ? 'up' : 'down')
+                      : null;
+                    
+                    const updatedPostWithChange = {
+                      ...postWithCorrectType, 
+                      replies: post.replies,
+                      scoreChange: scoreChange as 'up' | 'down' | null
+                    };
+                    
+                    // Remove score change indicator after animation
+                    if (scoreChange) {
+                      setTimeout(() => {
+                        setPosts(posts => posts.map(p => 
+                          p.id === updatedPost.id ? { ...p, scoreChange: null } : p
+                        ));
+                      }, 1200);
+                    }
+                    
+                    return updatedPostWithChange;
+                  }
+                  return post;
+                });
               } else if (updatedPost.replying_to) {
                 // Update reply
                 return currentPosts.map(post => ({
                   ...post,
-                  replies: post.replies?.map(reply => 
-                    reply.id === updatedPost.id ? postWithCorrectType : reply
-                  ) || []
+                  replies: post.replies?.map(reply => {
+                    if (reply.id === updatedPost.id) {
+                      const scoreChange = reply.score !== updatedPost.score 
+                        ? (updatedPost.score > reply.score ? 'up' : 'down')
+                        : null;
+                      
+                      const updatedReplyWithChange = {
+                        ...postWithCorrectType,
+                        scoreChange: scoreChange as 'up' | 'down' | null
+                      };
+                      
+                      // Remove score change indicator after animation
+                      if (scoreChange) {
+                        setTimeout(() => {
+                          setPosts(posts => posts.map(p => ({
+                            ...p,
+                            replies: p.replies?.map(r => 
+                              r.id === updatedPost.id ? { ...r, scoreChange: null } : r
+                            ) || []
+                          })));
+                        }, 1200);
+                      }
+                      
+                      return updatedReplyWithChange;
+                    }
+                    return reply;
+                  }) || []
                 }));
               }
               return currentPosts;
