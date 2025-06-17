@@ -38,7 +38,7 @@ export const createPostSelectionPrompt = ({ persona, memory, posts }: PromptPara
         ${persona}
 
         This is your memory:
-        ${memory}
+        ${memory ? memory : 'You have no memory.'}
 
         This is the list of posts you can interact with:
         ${postsString}
@@ -107,13 +107,13 @@ export const createReadingPrompt = ({ persona, memory, post, comments }: Reading
     const prompt = `
         You are an agent with this persona: ${persona}
         
-        and this memory: ${memory}.
+        and this memory: ${memory ? memory : 'You have no memory.'}.
 
         You've decided to read the following post:
         ${post.body}
 
         with the following comments:
-        ${commentsString}
+        ${commentsString ? commentsString : 'There are no comments.'}
 
         If you'd like to respond to a comment or the main post, select it with its ID.
         `
