@@ -3,47 +3,35 @@ description:
 globs: 
 alwaysApply: true
 ---
-Dead Internet" Simulation: Bot Behavior & Influence
+"Dead Internet" Simulation: Quirked Bot Behavior & Influence
 Project Overview
-This hackathon project develops a "dead internet" simulation on a miniature, Reddit-like social media platform populated by AI bots. The core functionality focuses on observing emergent bot behavior, specifically how a single, agendized AI bot interacts within and influences a larger community of "regular" bots.
+This hackathon project develops a "dead internet" simulation on a miniature, Reddit-like social media platform populated by AI bots. The core functionality focuses on observing emergent bot behavior, specifically how AI bots, each with a distinct "quirk" or persona, interact within and influence a larger community.
 
 The goal is to analyze how online discourse is shaped and what patterns arise from entirely AI-driven interactions.
 
 Key Technologies & Architecture
 Frontend & Core API (Next.js):
-
 A lightweight, Reddit-inspired user interface.
-
 API routes handle bot interactions (posting, commenting, voting).
-
 AI Bot Intelligence (OpenAI API):
-
 Bots use OpenAI's language models to generate content based on defined personas.
-
 Bot Orchestration & Logic (Python Backend):
-
 Manages distinct bot personas (system prompts, interests, activity levels).
-
 Implements decision-making for bot actions within the simulated platform.
-
 Communicates with the Next.js API.
-
 Database: A separate database persists all simulation data (posts, comments, bot profiles, interactions) for analysis.
-
 Core Functionality & Insights
-The simulation's primary experimental design involves two distinct types of AI bots:
+The simulation's primary experimental design involves a population of AI bots where every bot is programmed with a unique "quirk," specific agenda, or distinct bias. There are no "regular" or "special" bots; instead, the entire community is made up of diverse personalities. Examples of quirks could include:
 
-Baseline Bot Activity (The "Regular" Bots): We deploy a large population of AI bots programmed with neutral, general-purpose personas. These bots generate typical, often bland or moderately positive online discourse through basic posting and commenting. They establish a baseline of "normal" behavior and content flow within the simulated environment.
+Conspiracy Theorist: Always looks for hidden meanings and connections.
+Hyper-Optimist: Finds the positive in every situation.
+Debate Lord: Loves to argue and challenge viewpoints.
+Fact-Checker: Focuses on accuracy and cites sources (even if fictional).
+Meme Enthusiast: Primarily communicates through memes and pop culture references.
+Narrative Shaper: Attempts to guide conversations towards a specific storyline or outcome.
+By observing the interactions among this diverse group of "quirked" bots, the simulation is designed to showcase:
 
-Injected Influence (The "Special" Bot): We then strategically introduce one or a small number of AI bots with a highly specific, strong agenda or bias. This "special" bot is designed to actively push a particular viewpoint, disseminate certain information, or influence discussions in a predetermined direction (e.g., a conspiracy theorist, a fervent advocate, or a disruptive element).
-
-By observing the interactions between the large group of "regular" bots and the injected "special" bot, the simulation is designed to showcase:
-
-The observable impact of a targeted agenda on overall sentiment and content trends.
-
-How the "regular" bots react and adapt to the presence of a strong, consistent bias.
-
-Emergent patterns in communication, potential echo chambers, or counter-narratives that develop purely from these AI-to-AI interactions.
-
-
-This project demonstrates controlled AI interaction within a simulated online environment to reveal complex behavioral dynamics and the potential for targeted influence.
+The observable impact of numerous, interwoven agendas on overall sentiment and content trends.
+How bots with different quirks react, adapt, and form dynamics when exposed to a community of similarly opinionated or distinct individuals.
+Emergent patterns in communication, potential echo chambers, counter-narratives, and unexpected collaborations that develop purely from these AI-to-AI interactions within a fully "quirked" environment.
+This project demonstrates controlled AI interaction within a simulated online environment to reveal complex behavioral dynamics and the potential for organic influence arising from a multitude of unique bot personas.

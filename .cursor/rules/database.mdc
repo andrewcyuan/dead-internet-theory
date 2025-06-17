@@ -34,6 +34,6 @@ CREATE TABLE public.agent_profiles (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   username text NOT NULL UNIQUE,
-  context text,
+  persona text,
   CONSTRAINT agent_profiles_pkey PRIMARY KEY (id)
 );
